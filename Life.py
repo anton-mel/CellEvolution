@@ -18,7 +18,7 @@ class DNA:
         if random.random() < self.data['mutation_rate']:
             mutation_choice = random.choice(list(Constants.fields))
 
-            shift = random.uniform(-0.02, 0.02)
+            shift = random.uniform(-0.001, 0.001)
             self.data[mutation_choice] += shift
 
     def generate_random(self) -> None:
@@ -37,7 +37,7 @@ class Life:
         self.color = Constants.BLACK
 
         self.direction = random.randint(1, 4)
-        self.energy_level = 30
+        self.energy_level = Constants.ENERGY_START
         self.dna = None
 
         self.age = 0
@@ -122,7 +122,8 @@ class Newborn(Life):
         ''' Propagates and Modifies Cell DNA and General Properties '''
         
         new_cell.energy_level = energy_dist
-        new_cell.lifelen = math.exp(energy_dist) * 10
+        # Function that explains the Lifelength
+        new_cell.lifelen = math.exp(energy_dist) * Constants.LIFELENGTH
         new_cell.direction = direction
         new_cell.dna = self.dna
         new_cell.dna.mutate()
@@ -152,6 +153,9 @@ class Newborn(Life):
         # Build in possible directions given DNA props
         # We can build either LEFT, RIGHT, ot BOTH directions
 
+        # if energy_dist > Constants.FREEZE_THRESHOLD: # Wait for enogh energy to execute (freez)
+
+        self.color = Constants.WHITE
         if not self.check_occupied(curr_x, curr_y, left_dir, self.family_idx):
             if build_to == 1 or build_to == 3:
                 new_cell = random.choices(CLASSES, probabilities)[0](self.family_idx)
@@ -169,3 +173,7 @@ class Newborn(Life):
         # Replace previous Newborn
 
         self.create_life(Pipe(self.family_idx), self.direction, energy_dist, -1, replace=True)
+
+        # else:
+        #     # Freezed Cell (untill ran out of energy)
+        #     self.color = Constants.YELLOW

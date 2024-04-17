@@ -34,8 +34,8 @@ class Cell:
         ''' Transfer Life Energy to the Cell '''
 
         if self.occupied:
-            self.organic_level += 0.001
-            self.energy_level += 0.001
+            self.organic_level += Constants.SOIL_RELEASED
+            self.energy_level += Constants.ENERGY_RELEASED
             self.occupied = None
 
     def check_position(self) -> object:
@@ -286,10 +286,9 @@ class Sector:
             # Eat Cell if Needed
 
             neighbor_cell.kill_life()
-            curr_cell = self.get_cell_at(self.reading_x, self.reading_y)
-            curr_cell.organic_level += 0.001 
-            curr_cell.energy_level += 0.02
+            neighbor_cell.energy_level += Constants.SOIL_RELEASED
 
+            life.energy_level += Constants.ENERGY_RELEASED
             neighbor_cell.set_living_cell(life)
 
             return neighbor_cell
@@ -432,7 +431,7 @@ class Sector:
                 if life.execute():
                     self.remove_tail(cell)
                     continue
-                life.age += 1
+                life.age += Constants.AGE_INCREASE
 
                 # Reasons to eliminate the cell
                 if life.age > life.lifelen:
@@ -448,7 +447,7 @@ class Sector:
             
             # The energy level in ground
             # aims to a default values
-                    
+            
             if cell.energy_level > 0.3:
                 cell.energy_level -= 0.005
             elif cell.energy_level < 0.2:
@@ -473,7 +472,8 @@ class Sector:
 def main(**kwargs):
     ''' Define OS Global Variables and GUI/Tk User Windows '''
 
-    global FODLER_PATH, TICK, FAMILIES_COUNT, SECTOR_SIZE_X, SECTOR_SIZE_Y, SECTOR_BORDER, DISPLAY
+    global FODLER_PATH, TICK, FAMILIES_COUNT, SECTOR_SIZE_X, SECTOR_SIZE_Y, AGE_INCREASE, FREEZE_THRESHOLD, \
+        SECTOR_BORDER, DISPLAY, LIFELENGTH, ENERGY_START, ENERGY_RELEASED, SOIL_RELEASED
     
     # Update constants with user kwargs values
     TICK = kwargs.get('tick', 300)
@@ -482,6 +482,14 @@ def main(**kwargs):
     SECTOR_SIZE_X = kwargs.get('sector_size_x', 800)
     SECTOR_SIZE_Y = kwargs.get('sector_size_y', 800)
     SECTOR_BORDER = kwargs.get('sector_border', 0)
+    LIFELENGTH = kwargs.get('lifelength_const', 10)
+    ENERGY_START = kwargs.get('energy_start', 30)
+    ENERGY_RELEASED = kwargs.get('energy_released', 0.001)
+    SOIL_RELEASED = kwargs.get('soil_released', 0.001)
+    ENERGY_RELEASED = kwargs.get('energy_released', 0.001)
+    SOIL_RELEASED = kwargs.get('soil_released', 0.001)
+    AGE_INCREASE = kwargs.get('age_increase', 1)
+    FREEZE_THRESHOLD = kwargs.get('freeze', 5)
     DISPLAY = kwargs.get('display_type', "color")
 
     pygame.init()
@@ -566,6 +574,12 @@ class DNADialog:
             "sector_size_x": "880",
             "sector_size_y": "880",
             "sector_border": "0",
+            "lifelength_const": "10",
+            "energy_start": "30",
+            "energy_released": "0.001",
+            "soil_released": "0.001",
+            "age_increase": "40",
+            "freeze": "1"
         }
 
         entries = [
@@ -575,7 +589,7 @@ class DNADialog:
             ("Cell Radio Rate (0-1):", "radio_rate"),
             ("Cell Root Rate (0-1):", "root_rate"),
             ("Cell Leaf Rate (0-1):", "leaf_rate"),
-            ("Cell Newborn Rate (0-1):", "newb_rate")
+            ("Cell Newborn Rate (0-1):", "newb_rate"),
         ]
         
         for idx, (label_text, entry_name) in enumerate(entries):
@@ -597,6 +611,12 @@ class DNADialog:
             ("Sector Size Y:", "sector_size_y"),
             ("Sector Border:", "sector_border"),
             ("Display Type:", "display_type"),
+            ("Lifelength Linear:", "lifelength_const"),
+            ("Life Evergy Start:", "energy_start"),
+            ("Energy Released:", "energy_released"),
+            ("Soil Released:", "soil_released"),
+            ("Step Age Increase:", "age_increase"),
+            ("Freeze threshold:", "freeze"),
         ]
 
         for idx, (label_text, entry_name) in enumerate(additional_fields):
@@ -651,6 +671,12 @@ class DNADialog:
             sector_size_x = int(self.sector_size_x_entry.get())
             sector_size_y = int(self.sector_size_y_entry.get())
             sector_border = int(self.sector_border_entry.get())
+            lifelength_const = float(self.lifelength_const_entry.get())
+            energy_start = float(self.energy_start_entry.get())
+            energy_released = float(self.energy_released_entry.get())
+            age_increase = float(self.age_increase_entry.get())
+            freeze = float(self.freeze_entry.get())
+            soil_released = float(self.soil_released_entry.get())
             display_type = self.display_type_var.get()
             
             kwargs = {
@@ -667,6 +693,12 @@ class DNADialog:
                 'sector_size_x': sector_size_x,
                 'sector_size_y': sector_size_y,
                 'sector_border': sector_border,
+                'lifelength_const': lifelength_const,
+                'energy_start': energy_start,
+                'energy_released': energy_released,
+                'soil_released': soil_released,
+                'age_increase': age_increase,
+                'freeze': freeze,
                 'display_type': display_type
             }
 

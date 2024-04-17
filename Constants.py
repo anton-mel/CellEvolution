@@ -22,6 +22,7 @@ BG = (0, 0, 0)
 # Colors
 LIGHT_GRAY = (245, 245, 245)
 WHITE = (255, 255, 255)
+YELLOW = (255, 255, 0)
 BLUE = (30, 144, 255)    # Radio
 BROWN = (139, 69, 19)    # Root
 GREEN = (0, 128, 0)      # Leaf
@@ -37,6 +38,13 @@ fields = {
     "leaf_rate"
     "newb_rate",
 }
+
+LIFELENGTH = 10
+ENERGY_START = 30
+ENERGY_RELEASED = 0.001
+SOIL_RELEASED = 0.001
+AGE_INCREASE = 1
+FREEZE_THRESHOLD = 5
 
 # Directions
 LEFT, TOP, RIGHT, BOTTOM = 1, 2, 3, 4
