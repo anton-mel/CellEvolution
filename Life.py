@@ -2,8 +2,8 @@
 # For ASTR 330 Class                    Yale University
 
 # Imports
-import math
 import random
+import numpy as np
 import Constants
 
 
@@ -123,7 +123,7 @@ class Newborn(Life):
         
         new_cell.energy_level = energy_dist
         # Function that explains the Lifelength
-        new_cell.lifelen = math.exp(energy_dist) * Constants.LIFELENGTH
+        new_cell.lifelen = np.exp(energy_dist) * Constants.LIFELENGTH
         new_cell.direction = direction
         new_cell.dna = self.dna
         new_cell.dna.mutate()
@@ -167,7 +167,7 @@ class Newborn(Life):
                 self.create_life(new_cell, right_dir, energy_dist, self.family_idx)
 
         # Always move forward Newborn
-                
+        
         self.create_life(Newborn(self.family_idx), self.direction, energy_dist, self.family_idx)
 
         # Replace previous Newborn

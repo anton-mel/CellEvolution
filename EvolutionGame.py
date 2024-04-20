@@ -99,14 +99,14 @@ class Cell:
                     (self.x, self.y, Constants.CELL_SIZE, Constants.CELL_SIZE), 0)
     
     def draw_soil(self, surface) -> None:
-        ''' Draws the Cell by SOIL energy '''
+        ''' Draws the Cell by SOLID energy '''
 
-        organic_level_clipped = min(max(self.organic_level, 0), 1)
-        color_value = int(255 * (1 - organic_level_clipped))
-        color = (color_value, color_value, color_value)
+        soil_level_clipped = min(max(self.organic_level, 0), 1)
+        color_value = int(255 * soil_level_clipped)
+        color = (255, 255 - color_value, 0)
 
         pygame.draw.rect(surface, color, (self.x, self.y, Constants.CELL_SIZE, Constants.CELL_SIZE))
-                
+
     def draw_energy(self, surface) -> None:
         ''' Draws the Cell by ENERGY left '''
 
@@ -120,11 +120,13 @@ class Cell:
 
         energy_level = self.organic_level
         if energy_level < 0.5:
-            # Low energy: from yellow to red
-            r, g, b = 255, int(energy_level * 2 * 255), 0
+            r = int(255 * energy_level * 2)
+            g = int(255 * energy_level * 2)
+            b = int(255 * (1 - energy_level))
         else:
-            # High energy: from green to yellow
-            r, g, b= int((1 - energy_level) * 2 * 255), 255, 0
+            r = int(255 * (1 - energy_level))
+            g = int(255 * (1 - energy_level))
+            b = int(255 * (1 - energy_level) * 2)
 
         return (r, g, b)
 
@@ -143,9 +145,14 @@ class Sector:
 
         # Gather all energy to a dictionary
         self.gathered_energy = [0] * FAMILIES_COUNT
+        # Keep track of survived families
+        self.family_count = [0] * FAMILIES_COUNT
 
         self.generate_borders()
         self.generate_life(**kwargs)
+
+    def change_display_type(self, display):
+        self.display_type = display
 
     def save_energy(self, family_idx, energy) -> None:
         self.gathered_energy[family_idx] += energy
@@ -160,8 +167,8 @@ class Sector:
         for x in range(0, SECTOR_SIZE_X, Constants.CELL_SIZE):
             for y in range(0, SECTOR_SIZE_Y, Constants.CELL_SIZE):
                 cell = Cell(x, y)
-                cell.energy_level = random.uniform(0, 0.8)
-                cell.organic_level = random.uniform(0, 0.8)
+                cell.energy_level = random.uniform(0, 0.2)
+                cell.organic_level = random.uniform(0, 0.1)
 
                 cells.append(cell)
 
@@ -346,6 +353,8 @@ class Sector:
 
     def draw(self, surface):
 
+        # Display Types
+
         if self.display_type == "color":
             for cell in self.cells:
                 cell.draw_color(surface)
@@ -357,6 +366,24 @@ class Sector:
         elif self.display_type == "energy":
             for cell in self.cells:
                 cell.draw_energy(surface)
+
+        # General Durvival Information Board
+
+        font = pygame.font.SysFont(None, 20)
+        total_sum = sum(self.family_count)
+        ftext = font.render("Family Count: " + str(total_sum), True, Constants.WHITE)
+        ntext = font.render("Newborn Cell Count: " + str(self.newborn_count), True, Constants.WHITE)
+
+        ftext_rect = ftext.get_rect()
+        ftext_rect.topleft = (10, 24)
+        pygame.draw.rect(surface, (0, 0, 0), ftext_rect)
+
+        surface.blit(ftext, ftext_rect)
+
+        ntext_rect = ntext.get_rect()
+        ntext_rect.topleft = (10, 10)
+        pygame.draw.rect(surface, (0, 0, 0), ntext_rect)
+        surface.blit(ntext, ntext_rect)
 
     def get_cell_at(self, x, y):
         ''' Search for Cell in Shuffled Set '''
@@ -421,6 +448,9 @@ class Sector:
 
         random.shuffle(self.cells)
         
+        self.family_count = [0] * FAMILIES_COUNT
+        self.newborn_count = 0
+        
         for cell in self.cells:
             self.reading_x = cell.x
             self.reading_y = cell.y
@@ -437,6 +467,11 @@ class Sector:
                 if life.age > life.lifelen:
                     self.remove_tail(cell)
                     cell.occupied = None
+
+                # Save General Info for the Board
+                if isinstance(life, Life.Newborn):
+                    self.newborn_count += 1
+                self.family_count[life.family_idx] = 1
 
                 if (not isinstance(life, Life.Root) and \
                 cell.organic_level > Constants.ORGANIC_THRESHOLD) or \
@@ -518,6 +553,18 @@ def main(**kwargs):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            # Listen for key presses
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c:
+                    grid_display.change_display_type("color")
+                elif event.key == pygame.K_s:
+                    grid_display.change_display_type("soil")
+                elif event.key == pygame.K_e:
+                    grid_display.change_display_type("energy")
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        running = False
          
         # Save the Screen to the Folder
                 
@@ -636,7 +683,7 @@ class DNADialog:
                 energy_button = ttk.Radiobutton(display_type_frame, text="Energy", variable=self.display_type_var, value="energy", compound=tk.LEFT)
                 energy_button.grid(row=0, column=1, padx=(7, 7), pady=2, sticky="w")
 
-                soil_button = ttk.Radiobutton(display_type_frame, text="Soil", variable=self.display_type_var, value="soild", compound=tk.LEFT)
+                soil_button = ttk.Radiobutton(display_type_frame, text="Soil", variable=self.display_type_var, value="soil", compound=tk.LEFT)
                 soil_button.grid(row=0, column=2, padx=(7, 0), pady=2, sticky="w")
 
             else:
@@ -654,7 +701,61 @@ class DNADialog:
         self.submit_button.grid(row=idx+3, column=3, columnspan=1, pady=(20, 20), sticky="e", padx=20)
 
     def show_instructions(self):
-        pass
+        # Create a new window for instructions
+        
+        instructions_window = tk.Toplevel(self.master)
+        instructions_window.title("Instructions")
+        instructions_window.geometry("500x400")  # Set width to 500 pixels and height to 300 pixels
+        
+        # Text widget with the instructions
+        instructions_text = """
+        Evolution Game @ 2024
+
+        *****************************
+
+        Evolution Game is a life simulation where a user can control the DNA parameters and observe how their artificial colonies are developing and fighting for survival for the sake of energy. The goal is to recreate detailed living conditions, including energy, day/night, mortality from lack of it, soil, environment, collaboration, etc. The user has the ability to manage parameters of the living sectors (such as border width, size of arena, among families, output folder) and life cells (DNA) by varying sliders and inputs on a side of the GUI window. At the end of the simulation, each iteration is combined to form a video provided to a user to observe the evolution of cells in real-time.
+
+        *****************************
+
+        To switch between the DISPLAY_TYPE use keyboard letters "c", "e", "s" for COLOR, ENERGY, SOIL.
+
+        GUI Inputs:
+        - Border Width: Adjusts the width of the border between living sectors.
+        - Size of Arena: Sets the size of the simulation arena where the colonies evolve.
+        - Among Families: Controls the interaction and collaboration between different families of organisms.
+        - Output Folder: Specifies the folder where the simulation results and videos are saved.
+
+        *****************************
+
+        Additional Parameters:
+        - Mutation Rate: Controls the rate at which mutations occur in the DNA of organisms.
+        - Rotate Skills: Determines whether organisms have the ability to rotate their skills during the simulation.
+        - Rotate Rate: Sets the rate at which rotation of skills occurs.
+        - Radio Rate: Specifies the rate at which radioactivity affects organisms.
+        - Root Rate: Determines the rate at which roots grow for organisms.
+        - Leaf Rate: Sets the rate at which leaves grow for organisms.
+        - Newb Rate: Controls the rate at which new organisms are introduced.
+        - Tick: Sets the duration of each simulation tick.
+        - Families Count: Specifies the number of different families of organisms.
+        - Sector Size X: Sets the size of sectors along the X-axis.
+        - Sector Size Y: Sets the size of sectors along the Y-axis.
+        - Sector Border: Specifies the thickness of the border between sectors.
+        - Lifelength Const: Controls the constant for organism lifelength.
+        - Energy Start: Sets the initial energy level for organisms.
+        - Energy Released: Specifies the energy released by organisms.
+        - Soil Released: Sets the amount of soil released by organisms.
+        - Age Increase: Specifies the rate at which organism age increases.
+        - Freeze: Determines whether the simulation is frozen or active.
+        - Display Type: Specifies the type of display used in the simulation.
+
+        *****************************
+
+        Developed by Anton Melnychuk | @anton-mel on github
+        """
+        instructions_text_widget = tk.Text(instructions_window, wrap="word", width=60, height=15)
+        instructions_text_widget.insert("1.0", instructions_text)
+        instructions_text_widget.config(state="disabled")
+        instructions_text_widget.pack(fill="both", expand=True)
 
     def submit(self):
         try:
